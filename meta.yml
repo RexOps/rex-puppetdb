@@ -1,0 +1,16 @@
+Name: Puppet DB API
+Description: Some functions to query puppet db
+Author: jan gehring <jan.gehring@gmail.com>
+License: perl5
+
+PerlRequire:
+  - Moose
+  - MooseX::Params::Validate
+  - namespace::autoclean
+  - YAML
+  - JSON::XS
+  - LWP::UserAgent
+  - MIME::Base64
+  - HTTP::Request
+  - URI::Escape
+
