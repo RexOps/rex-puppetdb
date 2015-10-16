@@ -14,6 +14,7 @@ use URI::Escape;
 
 use Rex -base;
 use Data::Dumper;
+use PuppetDB::Server;
 
 has url => (is => 'ro', isa => 'Str', required => 1);
 has ua  => (is => 'ro', default => sub {
@@ -80,7 +81,7 @@ sub get_hosts {
   }
 
   my $ref = decode_json $res->decoded_content;
-  return map { $_->{name} } @{ $ref };
+  return map { $_ = PuppetDB::Server->new(name => $_->{name}) } @{ $ref };
 }
 
 sub get_connected_hosts {
