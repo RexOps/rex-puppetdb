@@ -22,8 +22,8 @@ has ua  => (is => 'ro', default => sub {
                     my $hostname = qx{hostname -f 2>/dev/null};
                     chomp $hostname;
 
-                    my $key_file  = "/var/lib/puppet/ssl/private_keys/$hostname.pem";
-                    my $cert_file = "/var/lib/puppet/ssl/certs/$hostname.pem";
+                    my $key_file  = "/etc/rex/puppetdb.pem";
+                    my $cert_file = "/etc/rex/puppetdb.crt";
 
                     my $ua;
                     if($lwp_useragent_version <= 6) {
@@ -45,6 +45,41 @@ has ua  => (is => 'ro', default => sub {
 #                    $ua->env_proxy;
                     $ua;
                   });
+
+#
+# curl -XGET http://localhost:8080/v3/nodes --data-urlencode 'query=
+# [
+#  "and",
+#    [ "=", ["fact", "project"], "nova" ],
+#    [ "=", ["fact", "app_tier"], "lxdev" ],
+#    [ "=", ["fact", "system_type"], "appsrv" ]
+# ]'
+#
+
+
+sub get_hosts {
+  my $self = shift;
+  my $options = shift;
+
+  my $server_url = $self->url;
+  $server_url =~ s/\/$//;
+
+  my @options;
+  for my $opt (keys %{ $options }) {
+    push @options, [ "=", [ "fact", "$opt" ], $options->{$opt} ];
+  }
+
+  my $url = "$server_url/v3/nodes?query=" . $self->_format_query(["and", @options ]);
+
+  my $res = $self->ua->get($url);
+
+  if(! $res->is_success) {
+    confess "Error accessing puppetdb.\n\nERROR: " . $res->content . "\n\n";
+  }
+
+  my $ref = decode_json $res->decoded_content;
+  return map { $_->{name} } @{ $ref };
+}
 
 sub get_connected_hosts {
   my $self = shift;
