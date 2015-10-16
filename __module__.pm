@@ -66,7 +66,9 @@ sub get_hosts {
 
   my @options;
   for my $opt (keys %{ $options }) {
-    push @options, [ "=", [ "fact", "$opt" ], $options->{$opt} ];
+    my $o = $opt;
+    $o =~ s/^facts\.//;
+    push @options, [ "=", [ "fact", $o ], $options->{$opt} ];
   }
 
   my $url = "$server_url/v3/nodes?query=" . $self->_format_query(["and", @options ]);
