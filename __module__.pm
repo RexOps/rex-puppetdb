@@ -84,6 +84,15 @@ sub get_hosts {
   return map { $_ = PuppetDB::Server->new(name => $_->{name}) } @{ $ref };
 }
 
+sub get_host {
+  my $self = shift;
+  my %opt = @_;
+
+  if(exists $opt{host}) {
+    return PuppetDB::Server->new(name => $opt{host});
+  }
+}
+
 sub get_connected_hosts {
   my $self = shift;
   my (%option) = validated_hash(
