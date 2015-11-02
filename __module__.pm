@@ -60,7 +60,14 @@ has ua  => (is => 'ro', default => sub {
 
 sub get_hosts {
   my $self = shift;
-  my $options = shift;
+  my $options;
+
+  if(ref $_[0] eq "HASH") {
+    $options = shift;
+  }
+  else {
+    $options = { @_ };
+  }
 
   my $server_url = $self->url;
   $server_url =~ s/\/$//;
@@ -82,15 +89,6 @@ sub get_hosts {
 
   my $ref = decode_json $res->decoded_content;
   return map { $_ = PuppetDB::Server->new(name => $_->{name}) } @{ $ref };
-}
-
-sub get_host {
-  my $self = shift;
-  my %opt = @_;
-
-  if(exists $opt{host}) {
-    return PuppetDB::Server->new(name => $opt{host});
-  }
 }
 
 sub get_connected_hosts {
