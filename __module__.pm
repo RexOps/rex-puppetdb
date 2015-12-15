@@ -86,7 +86,14 @@ sub get_hosts {
 
 sub get_host {
   my $self = shift;
-  my %opt = @_;
+
+  my %opt;
+  if(ref $_[0] eq "HASH") {
+    %opt = %{ $_[0] };
+  }
+  else {
+    %opt = @_;
+  }
 
   if(exists $opt{host}) {
     return PuppetDB::Server->new(name => $opt{host});
