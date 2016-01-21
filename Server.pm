@@ -1,6 +1,6 @@
 #
 # (c) 2015 FILIADATA GmbH
-# 
+#
 # vim: set ts=2 sw=2 tw=0:
 # vim: set expandtab:
 
@@ -11,19 +11,17 @@ use common::sense;
 use Rex -base;
 use Rex::CMDB;
 
-
 use base qw(Rex::Group::Entry::Server);
 
-
 sub new {
-  my $that = shift;
+  my $that  = shift;
   my $proto = ref($that) || $that;
-  my $self = $proto->SUPER::new(@_);
+  my $self  = $proto->SUPER::new(@_);
 
-  bless($self, $proto);
+  bless( $self, $proto );
 
-  my $cmdb = get cmdb(undef, $self->{name});
-  for my $key (keys %{ $cmdb }) {
+  my $cmdb = get cmdb( undef, $self->{name} );
+  for my $key ( keys %{$cmdb} ) {
     $self->{$key} = $cmdb->{$key};
   }
 
@@ -31,9 +29,9 @@ sub new {
 }
 
 sub fact {
-  my ($self, $fact) = @_;
+  my ( $self, $fact ) = @_;
 
-  if( defined $fact && $self->{__puppet_fact__}->{$fact} ) {
+  if ( defined $fact && $self->{__puppet_fact__}->{$fact} ) {
     return $self->{__puppet_fact__}->{$fact};
   }
 
@@ -48,7 +46,6 @@ sub get_user {
   my $self = shift;
   return $self->SUPER::get_user();
 }
-
 
 1;
 
