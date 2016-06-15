@@ -12,12 +12,15 @@ use HTTP::Request;
 use YAML;
 use URI::Escape;
 
-use Rex -base;
+use Rex;
 use Data::Dumper;
 use PuppetDB::Server;
 
 has SSL_verify_hostname => ( is => 'ro', isa => 'Int', default => sub { 0 } );
 has url => ( is => 'ro', isa => 'Str', required => 1 );
+has keyfile => (is => 'ro', isa => 'Str', default => sub { '/etc/rex/puppetdb.pem' });
+has certfile => (is => 'ro', isa => 'Str', default => sub { '/etc/rex/puppetdb.crt' });
+
 has ua => (
   is      => 'ro',
   lazy    => 1,
@@ -25,13 +28,10 @@ has ua => (
     my ($self) = @_;
     my $lwp_useragent_version = $LWP::UserAgent::VERSION;
 
-    my $key_file  = "/etc/rex/puppetdb.pem";
-    my $cert_file = "/etc/rex/puppetdb.crt";
-
     my $ua;
     if ( $lwp_useragent_version <= 6 ) {
-      $ENV{HTTPS_KEY_FILE}               = $key_file;
-      $ENV{HTTPS_CERT_FILE}              = $cert_file;
+      $ENV{HTTPS_KEY_FILE}               = $self->keyfile;
+      $ENV{HTTPS_CERT_FILE}              = $self->certfile;
       $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = $self->SSL_verify_hostname;
       $ua                                = LWP::UserAgent->new;
     }
@@ -39,8 +39,8 @@ has ua => (
       $ua = LWP::UserAgent->new(
         ssl_opts => {
           verify_hostname => $self->SSL_verify_hostname,
-          SSL_key_file    => $key_file,
-          SSL_cert_file   => $cert_file,
+          SSL_key_file    => $self->keyfile,
+          SSL_cert_file   => $self->certfile,
         }
       );
     }
@@ -80,6 +80,53 @@ sub get_hosts {
 
   my $ref = decode_json $res->decoded_content;
   return map { $_ = PuppetDB::Server->new( name => $_->{name} ) } @{$ref};
+}
+
+sub all_nodes {
+  my $self = shift;
+
+  my $server_url = $self->url;
+  $server_url =~ s/\/$//;
+
+  my $url = "$server_url/v3/nodes";
+
+  my $res = $self->ua->get($url);
+
+  if ( !$res->is_success ) {
+    confess "Error accessing puppetdb.\n\nERROR: " . $res->content . "\n\n";
+  }
+
+  my $ref = decode_json $res->decoded_content;
+  my @nodes = map { $_ = $_->{name} } grep { ! $_->{deactivated} } @{ $ref };
+  my @ret = ();
+  for my $node (@nodes) {
+    push @ret, PuppetDB::Server->new(name => $node);
+  }
+  
+  return @ret;
+}
+
+sub get_facts {
+  my $self = shift;
+  my $node = shift;
+
+  my $server_url = $self->url;
+  $server_url =~ s/\/$//;
+
+  my $fact_url = "$server_url/v3/facts?query=" . $self->_format_query(["=", "certname", $node]);
+  my $node_res = $self->ua->get($fact_url);
+
+  if ( !$node_res->is_success ) {
+    confess "Error accessing puppetdb to query node facts: $node.\n\nERROR: " . $node_res->content . "\n\n";
+  }
+  
+  my %facts;
+  my $node_ref = decode_json $node_res->decoded_content;
+  for my $d (@{ $node_ref }) {
+    $facts{$d->{name}} = $d->{value};
+  }
+  
+  return \%facts;
 }
 
 sub get_host {

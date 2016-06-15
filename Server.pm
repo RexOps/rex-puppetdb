@@ -28,6 +28,14 @@ sub new {
   return $self;
 }
 
+sub set_options {
+  my ($self, %options) = @_;
+  
+  for my $o (keys %options) {
+    $self->{$o} = $options{$o};
+  }
+}
+
 sub fact {
   my ( $self, $fact ) = @_;
 
